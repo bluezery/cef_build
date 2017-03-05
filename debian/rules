@@ -1,0 +1,43 @@
+#!/usr/bin/make -f
+# See debhelper(7) (uncomment to enable)
+# output every command that modifies files on the build system.
+#export DH_VERBOSE = 1
+
+
+# see FEATURE AREAS in dpkg-buildflags(1)
+#export DEB_BUILD_MAINT_OPTIONS = hardening=+all
+
+# see ENVIRONMENT in dpkg-buildflags(1)
+# package maintainers to append CFLAGS
+#export DEB_CFLAGS_MAINT_APPEND  = -Wall -pedantic
+# package maintainers to append LDFLAGS
+#export DEB_LDFLAGS_MAINT_APPEND = -Wl,--as-needed
+
+export DEB_VERSION := $(shell dpkg-parsechangelog | egrep '^Version:' | cut -f 2 -d ' ')
+export DEB_BUILDDIR := build
+export DEB_SRCDIR := .
+export DEB_DESTDIR := debian/tmp
+export $(dpkg-architecture -s)
+
+%:
+	dh $@
+
+override_dh_auto_configure:
+	mkdir -p $(DEB_BUILDDIR)  && cd $(DEB_BUILDDIR) && cmake -G "Unix Makefiles" -DCMAKE_BUILD_TYPE=Release ..
+
+override_dh_auto_build:
+	cd $(DEB_BUILDDIR) && make -j4 cefclient
+
+override_dh_auto_clean:
+	rm -rf $(DEB_BUILDDIR)
+
+override_dh_auto_install:
+	mkdir -p $(DEB_DESTDIR)/usr/lib && cp -rfv $(DEB_BUILDDIR)/third_party/cef/cef_binary_$(DEB_VERSION)_$(DEB_BUILD_ARCH_OS)$(DEB_BUILD_ARCH_BITS)/tests/cefclient/Release/libcef.so debian/tmp/usr/lib/
+	mkdir -p $(DEB_DESTDIR)/usr/lib && find $(DEB_BUILDDIR)/libcef_dll_wrapper/libcef_dll_wrapper.a debian/tmp/usr/lib/
+	mkdir -p $(DEB_DESTDIR)/usr/include/cef/ && cp -rfv $(DEB_SRCDIR)/third_party/cef/cef_binary_$(DEB_VERSION)_$(DEB_BUILD_ARCH_OS)$(DEB_BUILD_ARCH_BITS)/include/* $(DEB_DESTDIR)/usr/include/cef/
+
+# dh_make generated override targets
+# This is example for Cmake (See https://bugs.debian.org/641051 )
+#override_dh_auto_configure:
+#	dh_auto_configure -- #	-DCMAKE_LIBRARY_PATH=$(DEB_HOST_MULTIARCH)
+
