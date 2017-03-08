@@ -1,0 +1,4 @@
+BUILD:
+    cd cef-project
+    dpkg-buildpackage -b -uc -us
+
